@@ -225,11 +225,14 @@ function DealInterpretationPanel({
           Greenroom interpreted the deal this way from the show notes and
           structured fields. Review these terms before relying on the payout.
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="eyebrow text-[10px] text-ink-400 mb-2">
+          Terms Greenroom read
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {interpretation.terms.map((term) => (
             <div
               key={`${term.label}-${term.value}`}
-              className="rounded-lg bg-canvas-soft ring-1 ring-ink-200/60 p-3"
+              className="rounded-md bg-canvas-soft ring-1 ring-ink-200/60 p-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -653,29 +656,42 @@ function SupportedSettlement({
             )}
           </div>
         </CardHeader>
-        <CardContent className="divide-y divide-ink-100/80">
-          <Row
-            label="Gross box office"
-            value={formatMoney(calc.grossBoxOffice)}
-          />
-          <Row label="Net box office" value={formatMoney(calc.netBoxOffice)} />
-          <Row
-            label="Total expenses (passed through)"
-            value={formatMoney(calc.totalExpenses)}
-          />
-          <div className="pt-3" />
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-lg ring-1 ring-ink-200/60 mb-5 bg-ink-200/50">
+            <WorksheetStat
+              label="Gross box office"
+              value={formatMoney(calc.grossBoxOffice)}
+            />
+            <WorksheetStat
+              label="Net box office"
+              value={formatMoney(calc.netBoxOffice)}
+            />
+            <WorksheetStat
+              label="Expenses applied"
+              value={formatMoney(calc.totalExpenses)}
+            />
+          </div>
+
+          <div className="eyebrow text-[10px] text-ink-400 mb-2">
+            Calculation steps
+          </div>
+          <div className="divide-y divide-ink-100/80 rounded-lg border border-ink-100/80">
           {calc.steps.map((step, i) => (
             <Row
               key={i}
+              index={i + 1}
               label={step.label}
               value={formatMoney(step.value)}
               note={step.note}
             />
           ))}
-          <div className="pt-3" />
-          <div className="flex items-baseline justify-between py-3 font-semibold">
-            <span className="text-[13px] text-ink-900">Total to artist</span>
-            <span className="text-[18px] font-mono tabular text-ink-900">
+          </div>
+
+          <div className="mt-4 rounded-lg bg-brand-50/50 ring-1 ring-brand-200/60 px-4 py-3 flex items-baseline justify-between gap-4">
+            <span className="text-[13px] font-semibold text-ink-900">
+              Total to artist
+            </span>
+            <span className="text-[20px] font-mono tabular font-semibold text-ink-900">
               {formatMoney(calc.totalToArtist)}
             </span>
           </div>
@@ -713,6 +729,17 @@ function SupportedSettlement({
         </Card>
       )}
     </>
+  );
+}
+
+function WorksheetStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white px-4 py-3">
+      <div className="eyebrow text-[9.5px] text-ink-400 mb-1">{label}</div>
+      <div className="font-mono tabular text-[14px] font-semibold text-ink-900">
+        {value}
+      </div>
+    </div>
   );
 }
 
@@ -803,25 +830,30 @@ function SignoffSection({ settlement }: { settlement: Settlement }) {
 }
 
 function Row({
+  index,
   label,
   value,
   note,
 }: {
+  index: number;
   label: string;
   value: string;
   note?: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between py-2.5">
-      <div>
-        <div className="text-[13px] text-ink-600">{label}</div>
+    <div className="grid grid-cols-[28px_1fr_auto] items-start gap-3 px-3.5 py-3">
+      <div className="mt-0.5 h-5 w-5 rounded-full bg-ink-100 text-[10px] font-mono text-ink-500 flex items-center justify-center">
+        {index}
+      </div>
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium text-ink-800">{label}</div>
         {note && (
-          <div className="text-[11.5px] text-ink-400 mt-0.5 max-w-md leading-snug">
+          <div className="text-[11.5px] text-ink-500 mt-1 max-w-xl leading-relaxed">
             {note}
           </div>
         )}
       </div>
-      <div className="text-[13.5px] text-ink-900 font-mono tabular">
+      <div className="text-[13.5px] text-ink-900 font-mono tabular text-right whitespace-nowrap pt-0.5">
         {value}
       </div>
     </div>
