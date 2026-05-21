@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Check,
   AlertTriangle,
+  Sparkles,
   Mail,
   Pencil,
   XCircle,
@@ -28,6 +29,7 @@ import {
   formatShowDateFull,
 } from "@/lib/format";
 import type { Settlement, Recoup } from "@/db/schema";
+import type { DealInterpretation } from "@/lib/dealMath";
 import { Logomark } from "@/components/brand/logo";
 
 const RECOUP_LABELS: Record<Recoup["category"], string> = {
@@ -127,6 +129,10 @@ export default async function SettlePage({
       )}
 
       <div className="space-y-6 mt-6">
+        {calc.interpretation && (
+          <DealInterpretationPanel interpretation={calc.interpretation} />
+        )}
+
         {!calc.supported ? (
           <UnsupportedDeal
             dealType={calc.dealType}
@@ -139,7 +145,13 @@ export default async function SettlePage({
             expenseRowCount={expenses.length}
           />
         ) : (
-          <SupportedSettlement calc={calc} existingSettlement={settlement} />
+          <SupportedSettlement
+            calc={calc}
+            existingSettlement={settlement}
+            hasReviewWarnings={
+              (calc.interpretation?.warnings.length ?? 0) > 0
+            }
+          />
         )}
 
         {recoups.length > 0 && <RecoupsSection recoups={recoups} />}
@@ -185,6 +197,94 @@ function BackLink({ showId }: { showId: string }) {
       <ArrowLeft className="h-3.5 w-3.5" /> Back to show
     </Link>
   );
+}
+
+function DealInterpretationPanel({
+  interpretation,
+}: {
+  interpretation: DealInterpretation;
+}) {
+  const hasWarnings = interpretation.warnings.length > 0;
+
+  return (
+    <Card accent={hasWarnings ? "amber" : "sky"}>
+      <CardHeader>
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-sky-700" />
+            Deal interpretation draft
+          </CardTitle>
+          <CardDescription>{interpretation.summary}</CardDescription>
+        </div>
+        <PlainBadge variant={hasWarnings ? "amber" : "sky"}>
+          {hasWarnings ? "Review before sending" : "No review flags"}
+        </PlainBadge>
+      </CardHeader>
+      <CardContent>
+        <div className="text-[12px] text-ink-500 leading-relaxed mb-4">
+          Greenroom interpreted the deal this way from the show notes and
+          structured fields. Review these terms before relying on the payout.
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {interpretation.terms.map((term) => (
+            <div
+              key={`${term.label}-${term.value}`}
+              className="rounded-lg bg-canvas-soft ring-1 ring-ink-200/60 p-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="eyebrow text-[10px] text-ink-500 mb-1">
+                    {term.label}
+                  </div>
+                  <div className="text-[13px] font-medium text-ink-900">
+                    {term.value}
+                  </div>
+                </div>
+                <ConfidenceBadge confidence={term.confidence} />
+              </div>
+              <div className="text-[11px] text-ink-400 mt-2">
+                Source: {term.source}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {hasWarnings && (
+          <div className="mt-4 space-y-2">
+            {interpretation.warnings.map((warning) => (
+              <div
+                key={`${warning.label}-${warning.detail}`}
+                className="rounded-lg bg-amber-50/60 ring-1 ring-amber-200/70 p-3 flex gap-2.5"
+              >
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-700 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-[12.5px] font-semibold text-amber-900">
+                    {warning.label}
+                  </div>
+                  <div className="text-[12px] text-ink-600 mt-0.5 leading-relaxed">
+                    {warning.detail}
+                  </div>
+                  <div className="text-[11.5px] font-medium text-amber-800 mt-1.5">
+                    Confirm before sending payout.
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ConfidenceBadge({ confidence }: { confidence: string }) {
+  if (confidence === "needs_review") {
+    return <PlainBadge variant="amber">Check</PlainBadge>;
+  }
+  if (confidence === "medium") {
+    return <PlainBadge variant="default">Medium</PlainBadge>;
+  }
+  return <PlainBadge variant="brand">High</PlainBadge>;
 }
 
 type Stage = {
@@ -488,6 +588,7 @@ function UnsupportedDeal({
 function SupportedSettlement({
   calc,
   existingSettlement,
+  hasReviewWarnings,
 }: {
   calc: Extract<
     ReturnType<typeof calculateSettlement>,
@@ -496,6 +597,7 @@ function SupportedSettlement({
   existingSettlement: NonNullable<
     Awaited<ReturnType<typeof getShowById>>
   >["settlement"];
+  hasReviewWarnings: boolean;
 }) {
   return (
     <>
@@ -535,10 +637,20 @@ function SupportedSettlement({
       <Card accent="brand">
         <CardHeader>
           <div>
-            <CardTitle>Settlement worksheet</CardTitle>
+            <CardTitle>
+              {hasReviewWarnings
+                ? "Draft settlement worksheet"
+                : "Settlement worksheet"}
+            </CardTitle>
             <CardDescription className="font-mono">
               {calc.finalFormula}
             </CardDescription>
+            {hasReviewWarnings && (
+              <CardDescription>
+                Calculation shown for baseline review. Resolve flagged deal
+                language before sending payout.
+              </CardDescription>
+            )}
           </div>
         </CardHeader>
         <CardContent className="divide-y divide-ink-100/80">
