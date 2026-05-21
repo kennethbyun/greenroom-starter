@@ -1,157 +1,167 @@
-# Settlement Error Detection Brief
+# AI Deal Interpreter & Settlement Calculator Brief
 
 ## 1. Problem
 
-Mariana needs artist payouts to be concrete and defensible before she shares them with the tour manager or agent.
+Greenroom already has the inputs Mariana needs to settle a show: gross box office, ticketing fees, expenses, ticket counts, deal notes, recoups, and settlement history. But for common deal types at The Crescent, especially Vs deals, percentage-of-net deals, and door deals, the in-app tool cannot interpret the deal language and turn those inputs into a clear settlement calculation.
 
-Today, settlement errors can hide in plain sight. Greenroom may show a payout, but the underlying data can contain mismatches, missing assumptions, or status contradictions. A recoup may be included even though it is disputed. A deal note may describe a Vs deal while structured fields suggest something simpler. A settlement may appear unresolved even though sign-off text says the artist team approved it.
+Because the tool cannot model the deal, Mariana leaves Greenroom and uses a spreadsheet. That creates duplicate work, weakens Greenroom as the system of record, and makes the 2 a.m. settlement conversation harder to defend.
 
 The narrow problem for this MVP:
 
-> Before Mariana sends an artist payout, Greenroom should detect likely settlement errors that could make the payout wrong or hard to defend.
+> Mariana needs Greenroom to interpret the deal notes, show the extracted settlement terms, and calculate the artist payout with visible step-by-step math.
 
-This MVP is not trying to rebuild every settlement calculator or support every deal type. It focuses on catching high-risk errors before the payout leaves the room.
+This is not a generic AI copilot or a full dispute workflow. It is a focused in-app settlement tool for interpreting deal language and showing the calculation.
 
 ## 2. Primary User: Mariana Reyes, Lead Booker
 
-Mariana is the primary user because she owns the settlement conversation and the artist relationship.
+Mariana is the primary user because she owns the settlement conversation with the tour manager and agent.
 
 Her job in this moment is:
 
-> Send a payout number she can trust, explain, and defend.
+> Turn the negotiated deal into a payout number she can trust, explain, and defend.
 
-At 2 a.m., Mariana does not need a broad analytics dashboard. She needs a short pre-payout error check that answers:
-
-- Is there anything obviously wrong?
-- Is there anything contradictory?
-- Is there anything included in the payout that needs review?
-- What should I fix before I send this number?
+Mariana does not need AI to replace her judgment. She needs the product to read the same deal notes she trusts, extract the key terms, show its interpretation, and make the math visible enough that she can catch mistakes before sharing the payout.
 
 ## 3. Secondary User: Marcus Holland, GM
 
-Marcus is the secondary user because payout errors can create margin loss, concessions, and post-show escalations.
+Marcus is the secondary user because settlement mistakes affect venue margin and can become costly concessions.
 
-For this MVP, Marcus is not the main workflow owner. The feature is designed for Mariana's settlement flow. However, the detected errors should be clear enough that Mariana can pull Marcus in when the issue affects venue margin or relationship risk.
+For this MVP, Marcus is not the main workflow owner. The feature is designed for Mariana's settlement flow. But the output should be transparent enough that Marcus can review the calculation if a payout looks risky or if an agent challenges the settlement.
 
-Future versions could add GM escalation, approval workflows, and cross-show error reporting. Those are intentionally out of scope for the MVP.
+Future versions could add GM approval, margin warnings, or cross-show settlement risk reporting. Those are out of scope for the MVP.
 
 ## 4. Current Workflow
 
-Today, Mariana manually checks whether the payout is safe to send.
+Today, Mariana cannot rely on the in-app settlement tool for many common deals.
 
-1. Mariana opens the settlement for a show.
-2. She reviews the payout, expenses, fees, recoups, comps, deal terms, and notes.
-3. She manually checks whether the settlement math seems consistent with the deal.
-4. For nuanced deals, she often moves to a spreadsheet or rereads deal notes.
-5. If something is wrong, she may only catch it during the settlement conversation or after the agent challenges the payout.
-6. If the payout is already shared, fixing the issue can become a dispute, concession, or trust problem.
+1. Mariana opens a show settlement in Greenroom.
+2. Greenroom shows the available inputs: gross box office, fees, expenses, tickets, recoups, and deal notes.
+3. If the deal is flat or simple percentage-of-gross, the in-app calculator can produce a payout.
+4. If the deal is a Vs deal, percentage-of-net deal, or door deal, the tool says it cannot settle the show.
+5. Mariana moves to a spreadsheet, manually interprets the deal notes, applies caps and deductions, and calculates payout.
+6. She may later log the final result back into Greenroom, but the actual reasoning lives outside the product.
 
-The current workflow relies on Mariana's expertise, but Greenroom does not provide a focused safety check before payout.
+The current workflow breaks at the exact moment Greenroom should be most useful: interpreting the negotiated deal and showing the math.
 
 ## 5. Pain Points
 
-- **Likely errors are not surfaced proactively.** Mariana has to inspect the data herself before sending payout.
-- **Structured fields can conflict with deal notes.** The deal notes may describe terms that the structured settlement fields do not fully capture.
-- **Recoups can be applied incorrectly.** A disputed, withdrawn, or unclear recoup may still affect the payout.
-- **Statuses can be misleading.** The UI badge may not match sign-off language or the underlying settlement reality.
-- **Unsupported deals increase risk.** Vs deals and related variants are common at The Crescent, but unsupported logic makes errors harder to detect.
-- **Late error discovery damages trust.** If the artist team finds the problem first, Mariana loses credibility even if the final correction is small.
+- **The tool cannot settle common deal types.** Vs deals and percentage-of-net deals are core to The Crescent's booking program.
+- **Deal truth lives in prose.** Mariana often trusts `deal_notes_freetext` more than the structured fields because the structured fields do not capture every negotiated nuance.
+- **Spreadsheet fallback creates duplicate work.** The system has the inputs, but Mariana still has to rebuild the logic elsewhere.
+- **The math is hard to defend when it lives outside Greenroom.** Tour managers and agents need to understand how the payout was calculated.
+- **Unsupported clauses are mixed into otherwise settleable deals.** A standard Vs deal may be calculable, but a walkout pot, tier ratchet, or ambiguous marketing recoup needs human review.
+- **Mistakes cost real money.** Marcus and Mariana both describe settlement errors leading to concessions and lost trust.
 
 ## 6. Proposed Solution
 
-Build a simple **Settlement Error Detection** check.
+Build an **AI Deal Interpreter & Settlement Calculator** inside the settlement page.
 
-Before Mariana sends or finalizes an artist payout, Greenroom runs a focused error scan and surfaces a small set of high-risk findings.
+The feature has two jobs:
 
-The MVP detects four error types:
+1. **Interpret the deal**
+   Read the freeform deal notes and extract the settlement terms Mariana needs to confirm:
 
-1. **Deal mismatch**
-   The structured deal fields do not appear to match the freeform deal notes.
+   - deal type
+   - guarantee amount
+   - percentage
+   - basis: gross, net, or door
+   - expense cap
+   - hospitality cap
+   - recoup language
+   - unsupported or ambiguous clauses
 
-   Example: structured deal type says Flat, but notes mention "guarantee versus 80% of net."
+2. **Calculate the payout**
+   Use the interpreted terms and existing show inputs to produce visible step-by-step settlement math.
 
-2. **Recoup conflict**
-   A recoup that affects payout is marked disputed, withdrawn, or unclear.
+MVP calculation support:
 
-   Example: marketing recoup is included in settlement math, but its status is disputed.
+- standard Vs deal: guarantee vs percentage of net after fees and approved expenses, whichever is greater
+- percentage-of-net deal: percentage of net after fees and approved expenses
+- simple door deal: artist percentage of eligible door revenue after agreed deductions
 
-3. **Status contradiction**
-   Settlement status conflicts with sign-off text or approval language.
+The UI should show:
 
-   Example: settlement status is Disputed, but sign-off text says "Looks good."
-
-4. **Missing support for payout-impacting logic**
-   The deal appears to use a structure Greenroom does not fully support, but the payout is still presented as if it is final.
-
-   Example: notes mention walkout pot, tier ratchet, or Vs net logic not supported by the current calculator.
-
-Each error finding should include:
-
-- error type
-- severity
-- plain-language explanation
-- source evidence
-- suggested next action
+- extracted deal terms
+- confidence / needs-review flags
+- unsupported clauses, if any
+- gross box office
+- fees
+- expenses applied
+- expense cap handling
+- net settlement base
+- artist percentage share
+- guarantee comparison when relevant
+- final artist payout
 
 Example:
 
-> Possible recoup conflict: $650 marketing recoup is included in the payout, but the recoup status is disputed. Review before sending payout.
+> AI interpreted this as: $5,000 guarantee vs 80% of net after expenses, whichever is greater. Expenses capped at $2,500. Hospitality cap $500. Marketing recoup language needs review.
 
-For this MVP, the goal is not to fix the payout automatically. The goal is to stop Mariana from sending a payout that contains a detectable issue.
+Then show:
+
+```text
+Gross box office                 $19,840
+Less ticketing fees              -$1,984
+Less capped expenses             -$2,500
+Net settlement base              $15,356
+Artist share: 80%                $12,285
+Guarantee comparison              $5,000
+Final artist payout              $12,285
+```
+
+For this MVP, AI interpretation should be reviewable. Mariana should see what the system extracted before trusting the payout.
 
 Out of scope for MVP:
 
-- automatic payout correction
-- full Vs deal calculator support
-- agent-facing summaries
-- dispute resolution workflow
+- automatic submission to artist team
+- dispute workflow
+- full support for walkout pots
+- full support for tier ratchets
 - receipt OCR
-- Marcus approval workflow
 - configurable rule builder
-- cross-show error analytics
+- agent-facing collaboration
+- automatic correction of historical settlements
 
 ## 7. Why AI Is Needed
 
-Some error detection can be rules-based. Greenroom can check whether a recoup is disputed, whether a required field is missing, or whether the status and sign-off text conflict.
+Rules are enough once the deal terms are structured. The hard part is that the most trustworthy deal terms often live in messy prose.
 
-AI is needed because many settlement errors are hidden in prose.
+AI is needed to translate deal notes into a structured settlement model:
 
-AI can help by:
+- "guarantee vs 80% net after expenses" becomes a Vs deal
+- "expenses capped at $2,500" becomes an expense cap
+- "hospitality $500" becomes a hospitality cap
+- "marketing recoup against gross" becomes a flagged recoup clause
+- "walkout pot" or "tier ratchet" becomes an unsupported-clause warning
 
-- reading freeform deal notes for payout-impacting terms
-- comparing deal notes against structured fields
-- identifying language that suggests unsupported deal logic
-- summarizing why an item may be risky
-- turning messy source evidence into a plain-language finding
+The AI should be bounded. It should not silently finalize the payout. It should extract terms, explain its interpretation, flag uncertainty, and let Mariana review the calculation.
 
-The AI should be bounded. It should not decide the final payout, rewrite settlement math, or resolve disputes. It should flag likely errors, show evidence, and ask Mariana to review.
-
-This is a strong AI use case because the feature depends on interpreting messy venue language, not just calculating totals.
+This is a strong AI use case because Greenroom already has the numeric inputs. The missing layer is interpretation.
 
 ## 8. Risks & Mitigations
 
-- **Risk: False positives slow Mariana down.**  
-  Mitigation: limit MVP checks to high-risk, payout-impacting errors and show only a small number of findings.
-
 - **Risk: AI misinterprets deal notes.**  
-  Mitigation: show source evidence with every AI-generated finding so Mariana can verify quickly.
+  Mitigation: show extracted terms and source evidence before showing the payout as usable.
 
-- **Risk: Mariana treats the check as approval.**  
-  Mitigation: frame it as error detection, not settlement certification. Use language like "review needed" rather than "correct."
+- **Risk: Mariana over-trusts the calculation.**  
+  Mitigation: label the calculation as based on interpreted terms and show any needs-review clauses prominently.
 
-- **Risk: Unsupported deal types still cannot be settled in-app.**  
-  Mitigation: flag unsupported payout logic explicitly instead of pretending the calculator can handle it.
+- **Risk: The MVP becomes too broad.**  
+  Mitigation: support only standard Vs, percentage-of-net, and simple door deals. Flag walkout pots, tier ratchets, and ambiguous recoups instead of trying to solve them.
 
-- **Risk: The feature becomes too broad.**  
-  Mitigation: keep v1 limited to four error types: deal mismatch, recoup conflict, status contradiction, and unsupported payout-impacting logic.
+- **Risk: Structured fields conflict with deal notes.**  
+  Mitigation: compare both and show a mismatch warning when the AI interpretation differs from stored structured values.
+
+- **Risk: Agents challenge deductions.**  
+  Mitigation: make every deduction visible in the calculation steps, especially fees, expenses, caps, and recoups.
 
 ## 9. Success Metrics
 
-- **Errors caught before payout:** number and percentage of high-risk findings surfaced before artist payout is sent.
-- **Useful finding rate:** percentage of findings Mariana marks as useful or requiring review during testing.
-- **False positive rate:** percentage of findings Mariana dismisses as not relevant.
-- **Reduced payout corrections:** fewer settlements require payout edits after sharing with the artist team.
-- **Reduced dispute triggers:** fewer disputes caused by recoup conflicts, deal mismatch, or unclear settlement status.
-- **Time to review:** Mariana can complete the pre-payout error check quickly enough to use it during late-night settlement.
+- **Spreadsheet fallback reduction:** fewer unsupported settlements require Mariana to leave Greenroom.
+- **Interpretation accuracy:** percentage of extracted deal terms Mariana confirms without editing during testing.
+- **Calculation trust:** Mariana reports that the step-by-step math is clear enough to explain to a tour manager.
+- **Time to calculate:** time required to produce a payout for standard Vs and percentage-of-net deals decreases.
+- **Unsupported clause detection:** walkout pots, tier ratchets, and ambiguous recoups are flagged instead of silently calculated.
+- **Payout correction reduction:** fewer payouts require correction after being shared with the artist team.
 
-Future versions could add automatic correction suggestions, GM escalation, agent-facing explanations, historical error patterns, and broader deal model support. Those are important, but this MVP should prove that Greenroom can catch the most obvious payout risks before Mariana sends the number.
+Future versions could add richer deal models, artist-facing settlement previews, GM approvals, historical pattern detection, and dispute-resolution support. The MVP should prove that Greenroom can keep Mariana inside the product for the most common spreadsheet fallback cases.
